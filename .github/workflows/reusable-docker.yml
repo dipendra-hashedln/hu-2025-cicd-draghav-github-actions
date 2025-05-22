@@ -1,0 +1,70 @@
+name: Reusable Docker Build and Push
+
+on:
+  workflow_call:
+    inputs:
+      environment:
+        required: true
+        type: string
+      folder:
+        required: true
+        type: string
+    secrets:
+      AWS_ACCESS_KEY_ID:
+        required: true
+      AWS_SECRET_ACCESS_KEY:
+        required: true
+      AWS_SESSION_TOKEN:
+        required: true
+
+jobs:
+  build:
+    runs-on: ubuntu-latest
+    outputs:
+      image-tag: ${{ steps.commit.outputs.tag }}
+    steps:
+      - name: Checkout code
+        uses: actions/checkout@v4
+
+      - name: Set commit ID as tag
+        id: commit
+        run: echo "tag=$(echo $GITHUB_SHA)" >> $GITHUB_OUTPUT
+
+      - name: Build Docker image
+        run: |
+          docker build -t ${{ github.repository }}:${{ steps.commit.outputs.tag }} ${{ inputs.folder }}
+          docker save ${{ github.repository }}:${{ steps.commit.outputs.tag }} -o image.tar
+
+      - name: Upload image artifact
+        uses: actions/upload-artifact@v4
+        with:
+          name: image
+          path: image.tar
+
+  push:
+    needs: build
+    runs-on: ubuntu-latest
+    steps:
+      - uses: actions/download-artifact@v4
+        with:
+          name: image
+          path: .
+
+      - name: Load Docker image
+        run: docker load -i image.tar
+
+      - name: Configure AWS credentials
+        uses: aws-actions/configure-aws-credentials@v4
+        with:
+          aws-access-key-id: ${{ secrets.AWS_ACCESS_KEY_ID }}
+          aws-secret-access-key: ${{ secrets.AWS_SECRET_ACCESS_KEY }}
+          aws-session-token: ${{ secrets.AWS_SESSION_TOKEN }}
+          aws-region: us-east-1
+
+      - name: Login to ECR (public or private)
+        run: aws ecr-public get-login-password --region us-east-1 | docker login --username AWS --password-stdin public.ecr.aws
+
+      - name: Tag and Push
+        run: |
+          docker tag ${{ github.repository }}:${{ needs.build.outputs.image-tag }} public.ecr.aws/s7u6c0j7/hu-cicd-draghav-ecr:${{ inputs.environment }}-${{ needs.build.outputs.image-tag }}
+          docker push public.ecr.aws/s7u6c0j7/hu-cicd-draghav-ecr:${{ inputs.environment }}-${{ needs.build.outputs.image-tag }}
