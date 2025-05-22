@@ -27,14 +27,27 @@ jobs:
   build:
     name: Build Docker Image
     runs-on: ubuntu-latest
-
+    outputs:
+      image_tar: ${{ steps.save.outputs.image_tar }}
     steps:
       - name: Checkout code
         uses: actions/checkout@v4
 
       - name: Build Docker image
         run: |
-          docker build -t public.ecr.aws/${{ inputs.namespace }}/${{ inputs.repository }}:${{ inputs.image_tag }} .
+          docker build -t image:latest .
+
+      - name: Save Docker image to file
+        id: save
+        run: |
+          docker save image:latest > image.tar
+          echo "image_tar=image.tar" >> $GITHUB_OUTPUT
+
+      - name: Upload Docker image as artifact
+        uses: actions/upload-artifact@v4
+        with:
+          name: docker-image
+          path: image.tar
 
   push:
     name: Push Docker Image
@@ -42,6 +55,18 @@ jobs:
     runs-on: ubuntu-latest
 
     steps:
+      - name: Download Docker image artifact
+        uses: actions/download-artifact@v4
+        with:
+          name: docker-image
+
+      - name: Load Docker image
+        run: docker load -i image.tar
+
+      - name: Tag Docker image
+        run: |
+          docker tag image:latest public.ecr.aws/${{ inputs.namespace }}/${{ inputs.repository }}:${{ inputs.image_tag }}
+
       - name: Configure AWS credentials
         uses: aws-actions/configure-aws-credentials@v4
         with:
@@ -58,3 +83,10 @@ jobs:
       - name: Push Docker image
         run: |
           docker push public.ecr.aws/${{ inputs.namespace }}/${{ inputs.repository }}:${{ inputs.image_tag }}
+
+
+
+
+
+
+
