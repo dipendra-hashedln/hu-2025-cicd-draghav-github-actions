@@ -3,7 +3,7 @@ app = Flask(__name__)
 
 @app.route('/')
 def home():
-    return "Hello from the QA environment!"
+    return "Hello from the QA environment!Check with protection rule"
 
 if __name__ == '__main__':
     app.run(host='0.0.0.0', port=80)
