@@ -1,0 +1,41 @@
+name: Build and Deploy on Merge
+
+on:
+  push:
+    branches:
+      - main
+    paths:
+      - '**.py'
+
+jobs:
+  build:
+    runs-on: ubuntu-latest
+    strategy:
+      matrix:
+        env: [dev-draghav, qa-draghav, prod-draghav]
+
+    steps:
+      - uses: actions/checkout@v4
+
+      - name: Set up Docker
+        uses: docker/setup-buildx-action@v3
+
+      - name: Build and Tag Image
+        run: |
+          docker build -t my-app-${{ matrix.env }}:${{ github.sha }} ./${{ matrix.env }}
+
+  deploy:
+    needs: build
+    runs-on: ubuntu-latest
+    if: github.event_name == 'push'
+    strategy:
+      matrix:
+        env: [dev-draghav, qa-draghav, prod-draghav]
+
+    environment:
+      name: ${{ matrix.env }}
+      url: https://my-app-${{ matrix.env }}.example.com 
+
+    steps:
+      - name: Deploy to ${{ matrix.env }}
+        run: echo "Deploying image to ${{ matrix.env }}"

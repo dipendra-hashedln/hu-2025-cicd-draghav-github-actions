@@ -1,6 +1,8 @@
-FROM nginx:alpine
+FROM python:3.9-slim
 
-RUN rm -rf /usr/share/nginx/html/*
-COPY . /usr/share/nginx/html
+WORKDIR /app
+COPY app.py .
+RUN pip install flask
 EXPOSE 80
-CMD ["nginx", "-g", "daemon off;"]
+
+CMD ["python", "app.py"]
