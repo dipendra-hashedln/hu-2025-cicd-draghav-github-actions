@@ -1,4 +1,4 @@
-name: Build and Push Docker Image to ECR
+name: Build and Push to ECR Public
 
 on:
   push:
@@ -17,28 +17,28 @@ jobs:
       - name: Checkout code
         uses: actions/checkout@v4
 
-      - name: Configure AWS credentials (with session token)
+      - name: Configure AWS credentials
         uses: aws-actions/configure-aws-credentials@v4
         with:
           aws-access-key-id: ${{ secrets.AWS_ACCESS_KEY_ID }}
           aws-secret-access-key: ${{ secrets.AWS_SECRET_ACCESS_KEY }}
-          aws-session-token: ${{ secrets.AWS_SESSION_TOKEN }}
           aws-region: ${{ secrets.AWS_REGION }}
 
-      - name: Login to Amazon ECR
-        id: login-ecr
-        uses: aws-actions/amazon-ecr-login@v2
+      - name: Login to Amazon ECR Public
+        run: |
+          aws ecr-public get-login-password --region ${{ secrets.AWS_REGION }} | \
+          docker login --username AWS --password-stdin public.ecr.aws
 
       - name: Build Docker image
         env:
           IMAGE_TAG: ${{ github.sha }}
         run: |
           SHORT_TAG=${IMAGE_TAG::7}
-          docker build -t ${{ secrets.AWS_ACCOUNT_ID }}.dkr.ecr.${{ secrets.AWS_REGION }}.amazonaws.com/${{ secrets.ECR_REPOSITORY }}:$SHORT_TAG .
+          docker build -t public.ecr.aws/${{ secrets.ECR_NAMESPACE }}/${{ secrets.ECR_REPOSITORY }}:$SHORT_TAG .
 
-      - name: Push Docker image to ECR
+      - name: Push Docker image
         env:
           IMAGE_TAG: ${{ github.sha }}
         run: |
           SHORT_TAG=${IMAGE_TAG::7}
-          docker push ${{ secrets.AWS_ACCOUNT_ID }}.dkr.ecr.${{ secrets.AWS_REGION }}.amazonaws.com/${{ secrets.ECR_REPOSITORY }}:$SHORT_TAG
+          docker push public.ecr.aws/${{ secrets.ECR_NAMESPACE }}/${{ secrets.ECR_REPOSITORY }}:$SHORT_TAG
