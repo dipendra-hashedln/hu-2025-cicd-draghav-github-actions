@@ -1,3 +1,0 @@
-# hu-2025-cicd-draghav-github-actions
-
-#Readme sample
