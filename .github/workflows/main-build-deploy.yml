@@ -24,6 +24,20 @@ jobs:
         run: |
           docker build -t my-app-${{ matrix.env }}:${{ github.sha }} ./${{ matrix.env }}
 
+      - name: Notify Teams
+        if: always()
+        run: |
+          status="${{ job.status }}"
+          payload="{
+            \"@type\": \"MessageCard\",
+            \"@context\": \"https://schema.org/extensions\",
+            \"summary\": \"GitHub Actions Notification\",
+            \"themeColor\": \"0076D7\",
+            \"title\": \"Build - $status\",
+            \"text\": \"Repository: **${{ github.repository }}**<br>Branch: **${{ github.ref_name }}**<br>Workflow: **${{ github.workflow }}**<br>Status: **$status**<br>Commit: [${{ github.sha }}](https://github.com/${{ github.repository }}/commit/${{ github.sha }})\"
+          }"
+          curl -H "Content-Type: application/json" -d "$payload" ${{ secrets.TEAMS_WEBHOOK_URL }}
+
   deploy:
     needs: build
     runs-on: ubuntu-latest
@@ -39,3 +53,17 @@ jobs:
     steps:
       - name: Deploy to ${{ matrix.env }}
         run: echo "Deploying image to ${{ matrix.env }}"
+
+      - name: Notify Teams
+        if: always()
+        run: |
+          status="${{ job.status }}"
+          payload="{
+            \"@type\": \"MessageCard\",
+            \"@context\": \"https://schema.org/extensions\",
+            \"summary\": \"GitHub Actions Notification\",
+            \"themeColor\": \"0076D7\",
+            \"title\": \"Deploy - $status\",
+            \"text\": \"Repository: **${{ github.repository }}**<br>Branch: **${{ github.ref_name }}**<br>Workflow: **${{ github.workflow }}**<br>Status: **$status**<br>Commit: [${{ github.sha }}](https://github.com/${{ github.repository }}/commit/${{ github.sha }})\"
+          }"
+          curl -H "Content-Type: application/json" -d "$payload" ${{ secrets.TEAMS_WEBHOOK_URL }}
