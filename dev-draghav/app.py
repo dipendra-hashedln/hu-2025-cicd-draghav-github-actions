@@ -3,7 +3,7 @@ app = Flask(__name__)
 
 @app.route('/')
 def home():
-    return "Hello from the DEV environment!This is a test for the dev!"
+    return "Hello from the DEV environment!This is a test for the dev!Test for notification"
 
 if __name__ == '__main__':
     app.run(host='0.0.0.0', port=80)
